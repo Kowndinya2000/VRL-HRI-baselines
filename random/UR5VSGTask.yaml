@@ -1,0 +1,179 @@
+# used to create the object
+name: UR5VSGTask
+
+
+
+physics_engine: ${..physics_engine}
+
+# if given, will override the device setting in gym. 
+env:
+  numEnvs: ${resolve_default:8192,${...num_envs}}
+  numObservations: 49
+  numActions: 7
+
+  env_spacing: 1.5
+  max_episode_length: 450 # 350
+  controlFrequencyInv: 3 # 10 Hz
+  enable_debug_vis: True
+  aggregate_mode: True
+
+  is_test: False
+
+  asset:
+    asset_root: "../../assets"
+    asset_file_name_robot: "urdf/ur5e/ur5e_simplified_gripper.urdf"
+    # asset_file_name_table: "urdf/room/table_room_lab.urdf"
+    asset_file_name_table: "urdf/room/table_lab.urdf"
+
+  use_camera: True # False in Baichuan's default version
+  camera:
+    # L515
+    width: 640 # 96 is Baichuan's default
+    height: 480 # 72 is Baichuan's default
+    hov: 56.438781284638246  # np.rad2deg(2 * np.arctan2(w, 2 * fx)), 640x480
+    # kinova cam
+    # width: 96
+    # height: 72
+    # hov: 52.19757447122997  # np.rad2deg(2 * np.arctan2(w, 2 * fx)), 640x480   fx: 653.236267  cx: 311.300997  fy: 653.749329  cy: 232.795105
+
+  actor_defaults:
+    robot_root_pos: [0, 0, 0]
+    robot_dof_pos: [0, -1.0, 1.0, -1.73, -1.47, 3.14, 0.0425, 0.0425]
+    robot_dof_pos_far: [-0.662, -2.312, 1.822, -1.543, -1.228, 2.562, 0.0425, 0.0425]
+    # robot_dof_pos: [1.3514084398192094, -1.2335987153095922, 2.221978670713981, -3.083822255348781, -1.95756128903684, 3.6058502346202848, 0.0425, 0.0425]
+    # robot_dof_pos_far: [1.7772687773058258, -2.5609216114512794, 1.056622329157367, -0.8979719001510826, -1.7083282718520496, 3.2087878297915746, 0.0425, 0.0425]
+    # robot_dof_pos_far: [0.2072, -2.5609216114512794, 1.056622329157367, -0.8979719001510826, -1.7083282718520496, 3.2087878297915746, 0.0425, 0.0425]
+    
+    robot_gripper_lift_pose: [0.65, 0.15, 0.33, -0.048,  0.029, -0.002, -0.998]
+
+    target_object_root_pos: [0, 0, 0.0]
+    target_object_dof_pos: [0.65, 0.0, 0.23, 0, 0, 0]
+    target_object_dof_lower_limits: [0.45, -0.2, 0.02]
+    target_object_dof_upper_limits: [0.85, 0.2, 0.4]
+
+    table_root_pos: [0.95, 0, -0.035]
+
+
+sim:
+  dt: 0.03333333333333 # 1/30
+  substeps: 2
+  up_axis: "z"
+  use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
+  gravity: [0.0, 0.0, -9.81]
+  physx:
+    num_threads: ${....num_threads}
+    solver_type: ${....solver_type}
+    use_gpu: ${contains:"cuda",${....sim_device}} # set to False to run on CPU
+    num_position_iterations: 12
+    num_velocity_iterations: 4
+    contact_offset: 0.005  # default = 0.02
+    rest_offset: 0.0  # default = 0.001
+    bounce_threshold_velocity: 0.2  # default = 0.01
+    max_depenetration_velocity: 10.0  # default = 100.0
+    default_buffer_size_multiplier: 5.0  # default = 1
+    friction_offset_threshold: 0.01  # default = 0.04
+    friction_correlation_distance: 0.00625  # default = 0.025
+    max_gpu_contact_pairs: 1048576 # 1024*1024
+    num_subscenes: ${....num_subscenes}
+    contact_collection: 1 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (default - all contacts)
+
+  add_damping: False
+
+task:
+  randomize: False
+  texture_rand: False
+
+
+ctrl:
+    ctrl_type: joint_space_id_vel 
+    all:
+      jacobian_type: geometric
+    joint_pos_end_effector_ik:
+      ik_method: dls
+      joint_prop_gains: [400, 400, 400, 400, 400, 400, 400]
+      joint_deriv_gains: [80, 80, 80, 80, 80, 80, 80]
+      gripper_prop_gains: [200, 200]
+      gripper_deriv_gains: [20, 20]
+      gripper_dof_damping: 1200
+    joint_pos_control:  # direclty output dof and control them
+      joint_prop_gains: [400, 400, 400, 400, 400, 400, 400]
+      joint_deriv_gains: [80, 80, 80, 80, 80, 80, 80]
+      gripper_prop_gains: [200, 200]
+      gripper_deriv_gains: [20, 20]
+      gripper_dof_damping: 1200
+    joint_space_id:
+      ik_method: dls
+      joint_prop_gains: [80, 80, 80, 80, 80, 80, 80]
+      joint_deriv_gains: [18, 18, 18, 18, 18, 18, 18]
+      gripper_prop_gains: [200, 200]
+      gripper_deriv_gains: [20, 20]
+      gripper_dof_damping: 1200
+    joint_space_id_vel:
+      ik_method: dls
+      joint_prop_gains: [3, 3, 3, 3, 3, 3]
+      joint_deriv_gains: [0, 0, 0, 0, 0, 0]
+      gripper_prop_gains: [1000, 1000]
+      gripper_deriv_gains: [80, 80]
+      dof_dmaping: 20
+      gripper_dof_damping: 1200
+      do_inertial_comp: False
+
+    object:
+      xyz_deriv_gains: 40
+      rpy_deriv_gains: 20
+
+rl:
+  keypoint_offset: 0.15  # length of offset
+
+  angle_threshold_upper: 0.38  # half of fov (small side)
+  angle_threshold_upper_reset_tol: 0.05
+
+  pos_action_scale: [1.0, 1.0, 1.0]
+  rot_action_scale: [1.0, 1.0, 1.0]
+  force_action_scale: [1.0, 1.0, 1.0]
+  torque_action_scale: [1.0, 1.0, 1.0]
+
+  direct_dof_control: True
+
+  dof_vel_scale: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+
+  max_vel_change_threshold: 0.02
+
+  clamp_rot: True
+  clamp_rot_thresh: 1.0e-6
+
+  reward:
+    # keypoint_reward_scale: -0.5 # scale on keypoint-based penalty
+    # keypoint_over_penalty_scale: -5.0  # scale on keypoint-based penalty
+    # alignment_penalty_scale: -0.01  
+    # action_penalty_scale: -0.00    # scale on action penalty
+    # collision_penalty_scale: -0.5
+    # keep_object_in_view_penalty_scale: -0.5 
+    # close_gripper_reward_scale: 50.0 
+    # close_gripper_penalty_scale: -0.25 
+    # target_obj_moving_dist_penalty_scale: -0.05 
+    # in_view_angle_penalty_scale: -0.0
+  
+
+    # keypoint_reward_scale: -1.0  # scale on keypoint-based penalty
+    # keypoint_over_penalty_scale: -10.0  # scale on keypoint-based penalty
+    # alignment_penalty_scale: -0.02
+    # action_penalty_scale: -0.00   # scale on action penalty
+    # collision_penalty_scale: -1.0
+    # keep_object_in_view_penalty_scale: -1.0
+    # close_gripper_reward_scale: 100.0
+    # close_gripper_penalty_scale: -0.5
+    # target_obj_moving_dist_penalty_scale: -0.1
+    # in_view_angle_penalty_scale: -0.0
+
+
+    keypoint_reward_scale: -1.0  # scale on keypoint-based penalty
+    keypoint_over_penalty_scale: -10.0  # scale on keypoint-based penalty
+    alignment_penalty_scale: -0.02
+    action_penalty_scale: -0.00   # scale on action penalty
+    collision_penalty_scale: -1.0
+    keep_object_in_view_penalty_scale: -1.0
+    close_gripper_reward_scale: 100.0
+    close_gripper_penalty_scale: -0.5
+    target_obj_moving_dist_penalty_scale: -0.1
+    in_view_angle_penalty_scale: -0.0
