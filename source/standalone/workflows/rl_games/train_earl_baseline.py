@@ -5,7 +5,7 @@
 """Script to train RL Agent with RL-Games"""
 
 
-"""Launch Isaac Sim Simulator first.""""
+"""Launch Isaac Sim Simulator first."""
 
 import argparse
 import sys 
@@ -48,4 +48,26 @@ import math
 import os 
 import random
 from datetime import datetime
-from omni.isaac.lab.utils.dict import print_dict, omegaconf_to_dict
+
+from omni.isaac.lab.utils.assets import retrieve_file_path
+from omni.isaac.lab.utils.dict import print_dict
+from omni.isaac.core.utils.torch import set_seed
+from omni.isaac.lab.utils.io import dump_pickle, dump_yaml 
+
+
+from omni.isaac.lab_tasks.utils import get_checkpoint_path 
+from omni.isaac.lab_tasks.utils.hydra import hydra_task_config 
+from omni.isaac.lab_tasks.utils.wrappers.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
+
+torch.backends.cuda.matmul.allow_tf32 = True 
+torch.backends.cudnn.allow_tf32 = True
+torch.backends.cudnn.deterministic = False 
+torch.backends.cudnn.benchmark = False
+
+from rl_games.common import env_configurations, vecenv 
+from rl_games.common.algo_observer import IsaacAlgoObserver
+from rl_games.torch_runner import Runner 
+
+
+@hydra_task_config(args_cli.task, "rl_games_cfg_entry_point"):
+def 
